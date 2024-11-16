@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>智能 Podcast 對話生成器</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.js"></script>
+    <style>
+        /* 基本樣式 */
+        .dialogue-container {
+            max-height: 500px;
+            overflow-y: auto;
+        }
+        .message {
+            opacity: 0;
+            transform: translateY(20px);
+            animation: fadeIn 0.5s ease forwards;
+        }
+        @keyframes fadeIn {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        .loading-dots::after {
+            content: '';
+            animation: dots 1.5s steps(5, end) infinite;
+        }
+        @keyframes dots {
+            0%, 20% { content: '.'; }
+            40% { content: '..'; }
+            60% { content: '...'; }
+            80% { content: '....'; }
+            100% { content: '.....'; }
+        }
+        .active-message {
+            border: 2px solid #4CAF50;
+        }
+        .progress-bar {
+            height: 4px;
+            background-color: #e0e0e0;
+            border-radius: 2px;
+            overflow: hidden;
+        }
+        .progress {
+            height: 100%;
+            background-color: #4CAF50;
+            transition: width 0.1s linear;
+        }
+        /* 調試面板樣式 */
+        .debug-panel {
+            position: fixed;
+            bottom: 0;
+            right: 0;
+            width: 400px;
+            height: 300px;
+            background-color: rgba(0, 0, 0, 0.8);
+            color: #00ff00;
+            font-family: monospace;
+            font-size: 12px;
+            padding: 10px;
+            overflow-y: auto;
+            z-index: 9999;
+            display: none;
+        }
+        .debug-panel.show { display: block; }
+        .debug-entry {
+            margin-bottom: 5px;
+            word-wrap: break-word;
+        }
+        .debug-entry.error { color: #ff4444; }
+        .debug-entry.warning { color: #ffbb33; }
+        .debug-entry.success { color: #00C851; }
+        /* 文件上傳樣式 */
+        .file-upload-section {
+            display: none;  /* 默認隱藏文件上傳區域 */
+        }
+        .file-drop-zone {
+            border: 2px dashed #cbd5e0;
+            transition: all 0.3s ease;
+        }
+        .file-drop-zone.drag-over {
+            border-color: #4CAF50;
+            background-color: rgba(76, 175, 80, 0.1);
+        }
+        /* 連接狀態指示器 */
+        .connection-status {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-size: 12px;
+            z-index: 9999;
+        }
+        .connection-status.connected { background-color: #00C851; color: white; }
+        .connection-status.disconnected { background-color: #ff4444; color: white; }
+        .connection-status.connecting { background-color: #ffbb33; color: white; }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen">
+    <!-- 連接狀態指示器 -->
+    <div id="connectionStatus" class="connection-status disconnected">
+        斷開連接
+    </div>
+
+    <div class="container mx-auto px-4 py-8">
+        <div class="max-w-4xl mx-auto">
+            <h1 class="text-3xl font-bold text-center mb-8 text-gray-800">
+                智能 Podcast 對話生成器
+            </h1>
+
+            <!-- 設置按鈕 -->
+            <div class="mb-4 text-right">
+                <button id="toggleFileUpload" 
+                        class="px-4 py-2 text-sm text-blue-600 hover:text-blue-800">
+                    開啟/關閉文件上傳
+                </button>
+            </div>
+
+            <!-- 文件上傳區域（默認隱藏） -->
+            <div id="fileUploadSection" class="file-upload-section bg-white rounded-lg shadow-md p-6 mb-6">
+                <h2 class="text-lg font-semibold mb-4">文件上傳</h2>
+                <div id="dropZone" class="file-drop-zone rounded-lg p-6 text-center">
+                    <input type="file" id="fileInput" class="hidden" 
+                           accept=".txt,.csv,.json,.pdf,.docx">
+                    <label for="fileInput" class="cursor-pointer">
+                        <div class="mb-2">
+                            <span class="text-blue-500 hover:text-blue-600">點擊上傳</span>
+                            或拖放文件到這裡
+                        </div>
+                        <div class="text-sm text-gray-500">
+                            支持的格式: TXT, CSV, JSON, PDF, DOCX (最大 10MB)
+                        </div>
+                    </label>
+                </div>
+                <div id="fileList" class="mt-4 space-y-2">
+                    <!-- 文件列表將在這裡動態生成 -->
+                </div>
+            </div>
+
+            <!-- 播放控制區 -->
+            <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+                <div class="flex items-center justify-between mb-4">
+                    <div class="flex items-center space-x-4">
+                        <button id="playAllBtn" class="px-6 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2">
+                            播放全部
+                        </button>
+                        <button id="pauseBtn" class="px-6 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2" disabled>
+                            暫停
+                        </button>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <span id="currentTime" class="text-sm text-gray-600">0:00</span>
+                        <span class="text-sm text-gray-600">/</span>
+                        <span id="totalTime" class="text-sm text-gray-600">0:00</span>
+                    </div>
+                </div>
+                <div class="progress-bar">
+                    <div class="progress" style="width: 0%"></div>
+                </div>
+            </div>
+
+            <!-- 主題輸入區域 -->
+            <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+                <div class="flex space-x-4">
+                    <input type="text" id="topicInput" 
+                           class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                           placeholder="請輸入對話主題">
+                    <button id="generateBtn" 
+                            class="px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed">
+                        生成對話
+                    </button>
+                </div>
+                <div id="generationStatus" class="mt-4 text-sm text-gray-600 hidden">
+                    <span class="loading-dots">生成中</span>
+                </div>
+            </div>
+
+            <!-- 對話顯示區域 -->
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <div id="dialogueContainer" class="dialogue-container space-y-4">
+                    <!-- 對話內容將在這裡動態生成 -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 調試面板 -->
+    <div id="debugPanel" class="debug-panel">
+        <!-- 調試日誌將在這裡動態添加 -->
+    </div>
+    <div id="debugControls" class="fixed bottom-0 right-0 bg-black bg-opacity-80 p-2 z-50">
+        <button id="toggleDebug" class="px-3 py-1 bg-gray-700 text-white rounded hover:bg-gray-600">
+            Toggle Debug
+        </button>
+        <button id="clearDebug" class="px-3 py-1 bg-gray-700 text-white rounded hover:bg-gray-600 ml-2">
+            Clear Log
+        </button>
+        <button id="downloadLog" class="px-3 py-1 bg-gray-700 text-white rounded hover:bg-gray-600 ml-2">
+            Download Log
+        </button>
+    </div>
+
+<script>
+// 全局變量
+let fileUploadManager = null;  // 文件上傳管理器（可選功能）
+
+// 文件上傳開關
+document.getElementById('toggleFileUpload').addEventListener('click', function() {
+    const fileUploadSection = document.getElementById('fileUploadSection');
+    if (fileUploadSection.style.display === 'none' || !fileUploadSection.style.display) {
+        fileUploadSection.style.display = 'block';
+        // 懶加載初始化文件上傳管理器
+        if (!fileUploadManager) {
+            fileUploadManager = new FileUploadManager();
+        }
+    } else {
+        fileUploadSection.style.display = 'none';
+    }
+});
+</script>
+
+<!-- 在這裡引入其他腳本 -->
+<script src="js/debug.js"></script>
+<script src="js/audio-manager.js"></script>
+<script src="js/websocket-handler.js"></script>
+<script src="js/file-upload-manager.js"></script>
+
+</body>
+</html>

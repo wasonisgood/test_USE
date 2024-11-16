@@ -1,0 +1,38 @@
+podcast_server/
+├── config/
+│   ├── __init__.py
+│   └── settings.py           # 配置文件
+├── core/
+│   ├── __init__.py
+│   ├── server.py            # 主服務器
+│   ├── websocket.py         # WebSocket 處理
+│   └── http_handler.py      # HTTP 處理
+├── modules/
+│   ├── __init__.py
+│   ├── dialogue/
+│   │   ├── __init__.py
+│   │   ├── generator.py     # 對話生成模組
+│   │   └── processor.py     # 對話處理模組
+│   ├── audio/
+│   │   ├── __init__.py
+│   │   ├── generator.py     # 音頻生成模組
+│   │   └── manager.py       # 音頻文件管理
+│   ├── rag/
+│   │   ├── __init__.py
+│   │   ├── document.py      # 文檔處理
+│   │   ├── embeddings.py    # 嵌入處理
+│   │   └── retriever.py     # 檢索系統
+│   ├── crawler/
+│   │   ├── __init__.py
+│   │   ├── google.py        # Google 搜索爬蟲
+│   │   └── processor.py     # 爬蟲數據處理
+│   └── utils/
+│       ├── __init__.py
+│       └── helpers.py       # 通用工具函數
+├── static/                  # 靜態文件
+├── logs/                    # 日誌文件
+├── data/                    # 數據存儲
+│   ├── audio/              # 音頻文件
+│   └── embeddings/         # 嵌入向量
+├── requirements.txt         # 依賴項
+└── main.py                 # 入口文件
