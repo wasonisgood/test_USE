@@ -15,12 +15,12 @@ for dir_path in [STATIC_DIR, AUDIO_DIR, LOG_DIR, EMBEDDINGS_DIR]:
     dir_path.mkdir(parents=True, exist_ok=True)
 
 # 服務器配置
-WEBSOCKET_HOST = "localhost"
+WEBSOCKET_HOST = "0.0.0.0"
 WEBSOCKET_PORT = 8888
 HTTP_PORT = 8000
 
 # OpenAI 配置
-OPENAI_API_KEY = os.getenv("xxx", "")
+OPENAI_API_KEY = os.getenv("XXX", "XXX")
 GPT_MODEL = "gpt-4o-mini"
 TTS_MODEL = "tts-1"
 EMBEDDING_MODEL = "text-embedding-ada-002"

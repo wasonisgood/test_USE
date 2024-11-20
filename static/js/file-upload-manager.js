@@ -1,4 +1,69 @@
 // file-upload-manager.js
+// main.js
+
+let fileUploadManager = null;
+
+// 等待 DOM 加載完成
+document.addEventListener('DOMContentLoaded', () => {
+    debugLogger.log('初始化開始...');
+    try {
+        initializeFileUploadManager();
+        setupFileUploadListener();
+        debugLogger.log('初始化完成');
+    } catch (error) {
+        debugLogger.error(`初始化失敗: ${error.message}`);
+    }
+});
+
+// 初始化文件上傳管理器
+function initializeFileUploadManager() {
+    try {
+        fileUploadManager = new FileUploadManager();
+        debugLogger.log('FileUploadManager 初始化完成');
+    } catch (error) {
+        debugLogger.error(`FileUploadManager 初始化失敗: ${error.message}`);
+        throw error;
+    }
+}
+
+// 設置文件上傳監聽器
+function setupFileUploadListener() {
+    const uploadInput = document.getElementById('uploadInput');
+    const uploadButton = document.getElementById('uploadButton');
+    const uploadStatus = document.getElementById('uploadStatus');
+
+    if (!uploadInput || !uploadButton) {
+        debugLogger.error('找不到文件上傳相關的 DOM 元素');
+        return;
+    }
+
+    uploadButton.addEventListener('click', async () => {
+        const files = uploadInput.files;
+        if (!files || files.length === 0) {
+            alert('請選擇一個文件');
+            return;
+        }
+
+        const file = files[0];
+        debugLogger.log(`開始上傳文件: ${file.name}`);
+
+        try {
+            uploadButton.disabled = true;
+            if (!fileUploadManager) {
+                throw new Error('FileUploadManager 未初始化');
+            }
+
+            const result = await fileUploadManager.uploadFile(file);
+            uploadStatus.textContent = `文件上傳成功: ${result.fileName}`;
+            debugLogger.log(`文件上傳成功: ${result.fileName}`);
+        } catch (error) {
+            debugLogger.error(`文件上傳失敗: ${error.message}`);
+            uploadStatus.textContent = `文件上傳失敗: ${error.message}`;
+        } finally {
+            uploadButton.disabled = false;
+        }
+    });
+}
 
 class FileUploadManager {
     constructor() {

@@ -1,0 +1,89 @@
+{
+    "swagger": "2.0",
+    "info": {
+      "version": "1.0.0",
+      "title": "Podcast Server API",
+      "description": "API Documentation for Podcast Server"
+    },
+    "host": "localhost:8000",
+    "basePath": "/",
+    "schemes": ["http"],
+    "paths": {
+      "/audio/{filename}": {
+        "get": {
+          "summary": "Get audio file",
+          "description": "Retrieve audio file by filename",
+          "parameters": [
+            {
+              "name": "filename",
+              "in": "path",
+              "required": true,
+              "type": "string",
+              "description": "Name of the audio file to retrieve"
+            }
+          ],
+          "responses": {
+            "200": {
+              "description": "Audio file retrieved successfully",
+              "schema": {
+                "type": "file"
+              }
+            },
+            "404": {
+              "description": "File not found"
+            }
+          }
+        }
+      },
+      "/ws": {
+        "get": {
+          "summary": "WebSocket connection",
+          "description": "Establish WebSocket connection for real-time communication",
+          "responses": {
+            "101": {
+              "description": "WebSocket connection established"
+            }
+          }
+        }
+      },
+      "/survey/generate": {
+        "post": {
+          "summary": "Generate survey",
+          "description": "Generate a survey based on a topic",
+          "parameters": [
+            {
+              "name": "body",
+              "in": "body",
+              "required": true,
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "topic": {
+                    "type": "string",
+                    "description": "Topic for the survey"
+                  }
+                },
+                "required": ["topic"]
+              }
+            }
+          ],
+          "responses": {
+            "200": {
+              "description": "Survey generated successfully",
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "survey_id": { "type": "string" },
+                  "survey": { "type": "object" }
+                }
+              }
+            },
+            "400": {
+              "description": "Invalid input"
+            }
+          }
+        }
+      }
+    }
+  }
+  

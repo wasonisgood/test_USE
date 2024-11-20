@@ -16,6 +16,7 @@ from config.settings import (
 )
 from core.websocket import WebSocketHandler
 from core.http_handler import CustomHTTPRequestHandler
+from modules.ollama.checker import HardwareChecker
 
 logger = logging.getLogger(__name__)
 
@@ -25,6 +26,7 @@ class PodcastServer:
         self.websocket_handler = WebSocketHandler()
         self.http_server: Optional[HTTPServer] = None
         self.http_thread: Optional[Thread] = None
+        self.use_local = HardwareChecker.is_local_environment_ready()
 
     def _setup_logging(self):
         """設置日誌系統"""
@@ -71,7 +73,8 @@ class PodcastServer:
 
             # 啟動 WebSocket 服務器
             asyncio.run(self.run_websocket_server())
-            
+            logger.info(f"服務器啟動，使用 Ollama: {'是' if self.use_ollama else '否'}")
+            super().start()
         except KeyboardInterrupt:
             logger.info("服務器正在關閉...")
         except Exception as e:

@@ -1,52 +1,77 @@
 <!DOCTYPE html>
 <html lang="zh-TW">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>智能 Podcast 對話生成器</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css" rel="stylesheet">
     <style>
         /* 基本樣式 */
         .dialogue-container {
             max-height: 500px;
             overflow-y: auto;
         }
+
         .message {
             opacity: 0;
             transform: translateY(20px);
             animation: fadeIn 0.5s ease forwards;
         }
+
         @keyframes fadeIn {
             to {
                 opacity: 1;
                 transform: translateY(0);
             }
         }
+
         .loading-dots::after {
             content: '';
             animation: dots 1.5s steps(5, end) infinite;
         }
+
         @keyframes dots {
-            0%, 20% { content: '.'; }
-            40% { content: '..'; }
-            60% { content: '...'; }
-            80% { content: '....'; }
-            100% { content: '.....'; }
+
+            0%,
+            20% {
+                content: '.';
+            }
+
+            40% {
+                content: '..';
+            }
+
+            60% {
+                content: '...';
+            }
+
+            80% {
+                content: '....';
+            }
+
+            100% {
+                content: '.....';
+            }
         }
+
         .active-message {
             border: 2px solid #4CAF50;
         }
+
         .progress-bar {
             height: 4px;
             background-color: #e0e0e0;
             border-radius: 2px;
             overflow: hidden;
         }
+
         .progress {
             height: 100%;
             background-color: #4CAF50;
             transition: width 0.1s linear;
         }
+
         /* 調試面板樣式 */
         .debug-panel {
             position: fixed;
@@ -63,26 +88,44 @@
             z-index: 9999;
             display: none;
         }
-        .debug-panel.show { display: block; }
+
+        .debug-panel.show {
+            display: block;
+        }
+
         .debug-entry {
             margin-bottom: 5px;
             word-wrap: break-word;
         }
-        .debug-entry.error { color: #ff4444; }
-        .debug-entry.warning { color: #ffbb33; }
-        .debug-entry.success { color: #00C851; }
+
+        .debug-entry.error {
+            color: #ff4444;
+        }
+
+        .debug-entry.warning {
+            color: #ffbb33;
+        }
+
+        .debug-entry.success {
+            color: #00C851;
+        }
+
         /* 文件上傳樣式 */
         .file-upload-section {
-            display: none;  /* 默認隱藏文件上傳區域 */
+            display: none;
+            /* 默認隱藏文件上傳區域 */
         }
+
         .file-drop-zone {
             border: 2px dashed #cbd5e0;
             transition: all 0.3s ease;
         }
+
         .file-drop-zone.drag-over {
             border-color: #4CAF50;
             background-color: rgba(76, 175, 80, 0.1);
         }
+
         /* 連接狀態指示器 */
         .connection-status {
             position: fixed;
@@ -93,11 +136,24 @@
             font-size: 12px;
             z-index: 9999;
         }
-        .connection-status.connected { background-color: #00C851; color: white; }
-        .connection-status.disconnected { background-color: #ff4444; color: white; }
-        .connection-status.connecting { background-color: #ffbb33; color: white; }
+
+        .connection-status.connected {
+            background-color: #00C851;
+            color: white;
+        }
+
+        .connection-status.disconnected {
+            background-color: #ff4444;
+            color: white;
+        }
+
+        .connection-status.connecting {
+            background-color: #ffbb33;
+            color: white;
+        }
     </style>
 </head>
+
 <body class="bg-gray-100 min-h-screen">
     <!-- 連接狀態指示器 -->
     <div id="connectionStatus" class="connection-status disconnected">
@@ -112,8 +168,7 @@
 
             <!-- 設置按鈕 -->
             <div class="mb-4 text-right">
-                <button id="toggleFileUpload" 
-                        class="px-4 py-2 text-sm text-blue-600 hover:text-blue-800">
+                <button id="toggleFileUpload" class="px-4 py-2 text-sm text-blue-600 hover:text-blue-800">
                     開啟/關閉文件上傳
                 </button>
             </div>
@@ -122,8 +177,7 @@
             <div id="fileUploadSection" class="file-upload-section bg-white rounded-lg shadow-md p-6 mb-6">
                 <h2 class="text-lg font-semibold mb-4">文件上傳</h2>
                 <div id="dropZone" class="file-drop-zone rounded-lg p-6 text-center">
-                    <input type="file" id="fileInput" class="hidden" 
-                           accept=".txt,.csv,.json,.pdf,.docx">
+                    <input type="file" id="fileInput" class="hidden" accept=".txt,.csv,.json,.pdf,.docx">
                     <label for="fileInput" class="cursor-pointer">
                         <div class="mb-2">
                             <span class="text-blue-500 hover:text-blue-600">點擊上傳</span>
@@ -143,10 +197,13 @@
             <div class="bg-white rounded-lg shadow-md p-6 mb-6">
                 <div class="flex items-center justify-between mb-4">
                     <div class="flex items-center space-x-4">
-                        <button id="playAllBtn" class="px-6 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2">
+                        <button id="playAllBtn"
+                            class="px-6 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2">
                             播放全部
                         </button>
-                        <button id="pauseBtn" class="px-6 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2" disabled>
+                        <button id="pauseBtn"
+                            class="px-6 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2"
+                            disabled>
                             暫停
                         </button>
                     </div>
@@ -160,15 +217,43 @@
                     <div class="progress" style="width: 0%"></div>
                 </div>
             </div>
+            <!-- 在主題輸入區域前增加問卷部分 -->
+            <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+                <div class="flex items-center justify-between mb-4">
+                    <h2 class="text-lg font-semibold">節目前置問卷</h2>
+                    <div class="flex space-x-2">
+                        <div id="surveyStatus" class="text-sm"></div>
+                    </div>
+                </div>
+
+                <div id="surveyContainer" class="space-y-6">
+                    <!-- 問卷將在這裡動態生成 -->
+                </div>
+
+                <div id="analysisResult" class="mt-4 hidden">
+                    <h3 class="font-semibold mb-2">分析結果</h3>
+                    <div class="bg-gray-50 p-4 rounded-lg">
+                        <!-- 分析結果將在這裡顯示 -->
+                    </div>
+                </div>
+
+                <div id="programPlan" class="mt-4 hidden">
+                    <h3 class="font-semibold mb-2">節目規劃</h3>
+                    <div class="bg-gray-50 p-4 rounded-lg">
+                        <!-- 節目規劃將在這裡顯示 -->
+                    </div>
+                </div>
+            </div>
+
 
             <!-- 主題輸入區域 -->
             <div class="bg-white rounded-lg shadow-md p-6 mb-6">
                 <div class="flex space-x-4">
-                    <input type="text" id="topicInput" 
-                           class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                           placeholder="請輸入對話主題">
-                    <button id="generateBtn" 
-                            class="px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed">
+                    <input type="text" id="topicInput"
+                        class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="請輸入對話主題">
+                    <button id="generateBtn"
+                        class="px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed">
                         生成對話
                     </button>
                 </div>
@@ -202,30 +287,18 @@
         </button>
     </div>
 
-<script>
-// 全局變量
-let fileUploadManager = null;  // 文件上傳管理器（可選功能）
+    <script>
 
-// 文件上傳開關
-document.getElementById('toggleFileUpload').addEventListener('click', function() {
-    const fileUploadSection = document.getElementById('fileUploadSection');
-    if (fileUploadSection.style.display === 'none' || !fileUploadSection.style.display) {
-        fileUploadSection.style.display = 'block';
-        // 懶加載初始化文件上傳管理器
-        if (!fileUploadManager) {
-            fileUploadManager = new FileUploadManager();
-        }
-    } else {
-        fileUploadSection.style.display = 'none';
-    }
-});
-</script>
+    </script>
 
-<!-- 在這裡引入其他腳本 -->
-<script src="js/debug.js"></script>
-<script src="js/audio-manager.js"></script>
-<script src="js/websocket-handler.js"></script>
-<script src="js/file-upload-manager.js"></script>
+    <!-- 在這裡引入其他腳本 -->
+    <script src="js/debug.js"></script>
+    <script src="js/file-upload-manager.js"></script>
+    <script src="js/audio-manager.js"></script>
+    <script src="js/survey-manager.js"></script>
+    <script src="js/websocket-handler.js"></script>
+ 
 
 </body>
+
 </html>
